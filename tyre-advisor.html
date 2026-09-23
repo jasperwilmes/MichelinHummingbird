@@ -1,0 +1,1081 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MCF Tyre Advisor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="fonts.css">
+<style>
+
+:root{
+  --navy:#001E62;
+  --blue:#0050A0;
+  --blue-rail:#173D7A;
+  --blue-link:#1B6AC9;
+  --blue-tint:#EAF1FB;
+  --blue-tint-2:#DCE9FA;
+
+  --viz-good:#4FC48B;
+  --viz-warn:#F2C230;
+  --viz-bad:#BFBFBF;
+  --status-ok:#22A45D;
+  --status-defect:#F0A100;
+  --alert-red:#C7362A;
+  --alert-red-tint:#FBEBE9;
+
+  --canvas:#F2F3F5;
+  --card:#FFFFFF;
+  --hairline:#E1E3E8;
+  --hairline-strong:#CBD0D9;
+  --ink:#1A1A1A;
+  --ink-muted:#6B7280;
+  --ink-faint:#9CA3AF;
+
+  --font-display:'Michelin', 'Arial Narrow', sans-serif;
+  --font-body:'Open Sans', -apple-system, Helvetica, Arial, sans-serif;
+
+  --radius-sm:6px;
+  --radius-md:8px;
+  --radius-lg:12px;
+  --shadow-1:0 1px 2px rgba(16,24,40,.06);
+  --shadow-2:0 4px 16px rgba(16,24,40,.10);
+  --shadow-3:0 12px 32px rgba(16,24,40,.16);
+
+  --yellow:#FCE500;
+  --ok-tint:#E7F6EE;
+  --warn-tint:#FDF1D6;
+}
+
+*{box-sizing:border-box}
+h1,h2,h3,h4{margin:0;font-weight:400}
+button,input{font:inherit}
+body{
+  margin:0;background:var(--canvas);color:var(--ink);
+  font-family:var(--font-body);font-size:14px;line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none}
+.num{font-variant-numeric:tabular-nums}
+#app{display:flex;flex-direction:column;min-height:100svh}
+
+/* ===================== TOP BAR ===================== */
+.app-topbar{
+  height:52px;flex:none;background:#fff;border-bottom:1px solid var(--hairline);
+  display:flex;align-items:center;padding:0 20px;gap:20px;box-shadow:var(--shadow-1);
+  position:sticky;top:env(safe-area-inset-top,0px);z-index:30;
+}
+.fleet-brand{display:flex;align-items:center;gap:8px;flex:none}
+.fleet-brand .mark{width:26px;height:26px;border-radius:6px;background:var(--navy);
+  display:flex;align-items:center;justify-content:center}
+.fleet-brand .mark svg{width:16px;height:16px;color:#fff}
+.fleet-brand .word{font-family:var(--font-display);font-weight:700;font-size:13px;
+  color:var(--navy);letter-spacing:.02em;line-height:1.1;white-space:nowrap}
+.fleet-brand .word small{display:block;font-family:var(--font-body);font-weight:400;
+  font-size:9px;color:var(--ink-muted);letter-spacing:.03em}
+.topbar-back{display:flex;align-items:center;gap:6px;background:var(--canvas);
+  border:1px solid var(--hairline-strong);color:var(--ink);font-size:12px;font-weight:700;
+  padding:6px 12px 6px 9px;border-radius:99px;cursor:pointer;flex:none}
+.topbar-back svg{width:13px;height:13px}
+.topbar-back:hover{background:var(--hairline)}
+.fleet-nav{display:flex;align-items:center;gap:26px;height:100%;min-width:0;overflow-x:auto;
+  scrollbar-width:none}
+.fleet-nav::-webkit-scrollbar{display:none}
+.fleet-nav a{font-size:13px;font-weight:600;color:var(--ink-muted);display:flex;
+  align-items:center;gap:4px;height:100%;position:relative;white-space:nowrap;cursor:pointer}
+.fleet-nav a.active{color:var(--navy)}
+.fleet-nav a.active:after{content:'';position:absolute;left:0;right:0;bottom:0;height:2px;
+  background:var(--blue);border-radius:2px 2px 0 0}
+.fleet-nav a svg{width:10px;height:10px;opacity:.6}
+.case-tab{color:var(--status-defect)!important;font-weight:700}
+.case-tab svg{width:12px;height:12px;opacity:1}
+.fleet-topbar-right{margin-left:auto;display:flex;align-items:center;gap:22px;flex:none}
+.tb-action{display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--ink-muted)}
+.tb-action svg{width:17px;height:17px}
+.tb-action span{font-size:10px;font-weight:600}
+.avatar{width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;
+  display:grid;place-items:center;font-size:11px;font-weight:700;font-family:var(--font-display)}
+
+/* ===================== SUB BAR ===================== */
+.app-subbar{
+  height:44px;flex:none;background:#fff;border-bottom:1px solid var(--hairline);
+  display:flex;align-items:center;padding:0 20px;gap:10px;
+  position:sticky;top:calc(env(safe-area-inset-top,0px) + 52px);z-index:29;
+  overflow-x:auto;scrollbar-width:none;
+}
+.app-subbar::-webkit-scrollbar{display:none}
+.pill-select{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+  color:var(--ink);border:1px solid var(--hairline-strong);border-radius:var(--radius-sm);
+  padding:5px 10px;background:#fff;white-space:nowrap;cursor:pointer;flex:none}
+.pill-select .lbl{color:var(--ink-faint);font-weight:600;text-transform:uppercase;
+  font-size:9px;letter-spacing:.04em}
+.pill-select svg{width:9px;height:9px;color:var(--ink-faint)}
+.seg-toggle{display:flex;border:1px solid var(--hairline-strong);border-radius:var(--radius-sm);
+  overflow:hidden;margin-left:8px;flex:none}
+.seg-toggle button{border:none;background:#fff;font-size:11px;font-weight:700;padding:6px 12px;
+  color:var(--ink-faint);cursor:pointer}
+.seg-toggle button.active{background:var(--navy);color:#fff}
+.status-counters{display:flex;align-items:center;gap:18px;margin-left:auto;flex:none;padding-left:16px}
+.status-counters .item{display:flex;align-items:center;gap:6px;font-size:12px;
+  color:var(--ink-muted);font-weight:600;white-space:nowrap}
+.status-counters .dot{width:8px;height:8px;border-radius:50%}
+.status-counters b{font-size:13px;color:var(--ink)}
+.status-counters .item.ok b{color:var(--status-ok)}
+.status-counters .item.sub b{color:var(--status-defect)}
+.status-counters .item.bad b{color:var(--alert-red)}
+
+/* ===================== BODY / RAIL ===================== */
+.fleet-body{flex:1;display:flex;min-height:0}
+.app-rail{width:42px;flex:none;background:var(--blue-rail);display:flex;flex-direction:column;
+  align-items:center;padding:14px 0;gap:18px;position:sticky;align-self:flex-start;
+  top:calc(env(safe-area-inset-top,0px) + 96px);
+  height:calc(100svh - env(safe-area-inset-top,0px) - 96px)}
+.app-rail .ic{width:42px;height:34px;display:flex;align-items:center;justify-content:center;
+  color:rgba(255,255,255,.62);position:relative}
+.app-rail .ic svg{width:17px;height:17px}
+.app-rail .ic.active{color:#fff;background:rgba(255,255,255,.1)}
+.app-rail .ic.active:before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;
+  background:var(--yellow);border-radius:0 2px 2px 0}
+.main{flex:1;min-width:0;padding:22px 24px 48px}
+.inner{max-width:1240px;margin:0 auto}
+
+/* ===================== HEADINGS ===================== */
+.screen-head{margin-bottom:18px}
+.screen-head .eyebrow{font-size:11px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.05em;color:var(--ink-faint);margin-bottom:5px}
+.screen-head h1{font-family:var(--font-display);font-size:24px;font-weight:700;color:var(--navy)}
+.screen-head p{margin:5px 0 0;font-size:13px;color:var(--ink-muted);max-width:74ch}
+.sec-head{display:flex;align-items:center;gap:8px;margin:0 0 12px}
+.sec-head .t{font-size:12px;font-weight:800;color:var(--ink-faint);
+  text-transform:uppercase;letter-spacing:.03em}
+
+/* ===================== STATUS STRIP (KPI) ===================== */
+.status-strip{display:flex;background:#fff;border:1px solid var(--hairline);
+  border-radius:var(--radius-lg);overflow:hidden;margin-bottom:18px;flex-wrap:wrap}
+.status-cell{flex:1 1 180px;padding:14px 16px;border-right:1px solid var(--hairline)}
+.status-cell:last-child{border-right:none}
+.status-cell .h{font-size:11px;font-weight:800;color:var(--ink-faint);text-transform:uppercase;
+  letter-spacing:.03em;margin-bottom:6px}
+.status-cell .v{font-family:var(--font-display);font-size:26px;font-weight:700;
+  line-height:1.1;color:var(--navy)}
+.status-cell.bad .v{color:var(--alert-red)}
+.status-cell.money .v{color:var(--status-ok)}
+.status-cell .t{font-size:11px;color:var(--ink-muted);margin-top:3px}
+
+/* ===================== FILTERS ===================== */
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.fchip{background:#fff;border:1px solid var(--hairline-strong);color:var(--ink-muted);
+  border-radius:99px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer}
+.fchip[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+.fsearch{flex:1 1 200px;min-width:160px;background:#fff;border:1px solid var(--hairline-strong);
+  color:var(--ink);border-radius:var(--radius-sm);padding:6px 11px;font-size:13px}
+.fsearch::placeholder{color:var(--ink-faint)}
+
+/* ===================== TABLE ===================== */
+.ws-table-wrap{background:#fff;border:1px solid var(--hairline);border-radius:var(--radius-lg);
+  overflow:hidden}
+.tscroll{overflow-x:auto}
+.ws-table{width:100%;border-collapse:collapse;min-width:1120px}
+.ws-table th{text-align:left;font-size:10.5px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.03em;color:var(--ink-faint);padding:11px 13px;background:var(--canvas);
+  border-bottom:1px solid var(--hairline);white-space:nowrap}
+.ws-table th.r,.ws-table td.r{text-align:right}
+.ws-table td{padding:11px 13px;font-size:13px;border-bottom:1px solid var(--hairline);
+  vertical-align:middle}
+.ws-table tr:last-child td{border-bottom:none}
+.ws-table tr.clickable{cursor:pointer}
+.ws-table tr.clickable:hover td{background:var(--blue-tint)}
+.ws-table tr.done td{background:var(--canvas);color:var(--ink-muted)}
+.ws-table td.name{font-weight:700;white-space:nowrap}
+.ws-table td .sub{display:block;font-weight:400;font-size:11px;color:var(--ink-muted);margin-top:2px}
+.plate{font-weight:800;font-size:13.5px;letter-spacing:.01em;color:var(--navy);white-space:nowrap}
+
+/* fit pill */
+.fit{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:3px 10px 3px 8px;
+  font-size:11.5px;font-weight:800;white-space:nowrap}
+.fit .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.fit.ok{background:var(--ok-tint);color:var(--status-ok)}
+.fit.sub{background:var(--warn-tint);color:#9A6A00}
+.fit.bad{background:var(--alert-red-tint);color:var(--alert-red)}
+
+.tread{display:flex;align-items:center;gap:8px;min-width:110px}
+.tread .track{flex:1;height:5px;border-radius:3px;background:var(--hairline);overflow:hidden;min-width:46px}
+.tread .fill{height:100%;border-radius:3px}
+.tread b{font-weight:700;font-size:12.5px;min-width:46px;text-align:right}
+.due{white-space:nowrap;font-weight:600}
+.due.soon{color:var(--alert-red);font-weight:800}
+.due.mid{color:#9A6A00;font-weight:700}
+.badge-duty{display:inline-block;border:1px solid var(--hairline-strong);border-radius:4px;
+  padding:2px 7px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;
+  color:var(--ink-muted);white-space:nowrap;background:#fff}
+.booked{color:var(--status-ok);font-weight:800;font-size:12px;white-space:nowrap}
+
+/* ===================== BUTTONS ===================== */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  border-radius:var(--radius-md);padding:10px 18px;font-size:13px;font-weight:700;
+  border:1px solid transparent;cursor:pointer;white-space:nowrap;
+  transition:filter .12s ease,background .12s ease}
+.btn svg{width:13px;height:13px}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-primary:disabled{background:#C7D3E0;cursor:not-allowed;filter:none}
+.btn-outline{background:#fff;color:var(--navy);border-color:var(--hairline-strong)}
+.btn-outline:hover{border-color:var(--blue);color:var(--blue)}
+.btn-ghost{background:transparent;color:var(--ink-muted);padding-left:0}
+.btn-ghost:hover{color:var(--ink)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn:focus-visible,.fchip:focus-visible,.fsearch:focus-visible,.opt:focus-visible,
+.ws:focus-visible,.pick:focus-visible,.mk:focus-visible,.fleet-nav a:focus-visible
+{outline:2px solid var(--blue);outline-offset:2px}
+
+/* ===================== CARDS / PANELS ===================== */
+.card{background:var(--card);border:1px solid var(--hairline);border-radius:var(--radius-lg)}
+.card-b{padding:18px}
+.card h2{font-size:14px;font-weight:800;color:var(--ink);margin-bottom:12px}
+.grid2{display:grid;grid-template-columns:1.02fr .98fr;gap:16px;align-items:start}
+.stack>*+*{margin-top:16px}
+
+.vhead{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px}
+.vhead .plate{font-family:var(--font-display);font-size:26px;font-weight:700;letter-spacing:.02em}
+.vfact .k{font-size:10.5px;font-weight:800;color:var(--ink-faint);text-transform:uppercase;
+  letter-spacing:.03em}
+.vfact .v{font-weight:700;font-size:14px;margin-top:1px}
+.vfacts{display:flex;gap:24px;flex-wrap:wrap}
+
+/* spec rows */
+/* headline cost comparison on the vehicle screen */
+.cost-hero{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  padding:14px 16px;margin:0 0 14px;border-radius:10px;background:var(--canvas,#F6F7F9);
+  border:1px solid var(--hairline)}
+.cost-hero .ch-lbl{font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--ink-faint,#9CA3AF);margin-bottom:3px}
+.cost-hero .ch-fig{font-size:30px;font-weight:900;line-height:1.05}
+.cost-hero .ch-sub{font-size:16px;font-weight:800;line-height:1.1}
+.cost-hero .ch-split{display:flex;align-items:center;gap:14px;text-align:right}
+.cost-hero .ch-arrow{color:var(--ink-faint,#9CA3AF);font-size:16px;align-self:flex-end;padding-bottom:2px}
+.spec{display:grid;gap:0}
+.spec .r{display:flex;justify-content:space-between;gap:12px;padding:8px 0;
+  border-bottom:1px solid var(--hairline);font-size:13px}
+.spec .r:last-child{border-bottom:none}
+.spec .r span{color:var(--ink-muted)}
+.spec .r b{font-weight:700}
+.spec .r.hi{padding-top:11px}
+.spec .r.hi b{font-size:16px;font-family:var(--font-display)}
+.good{color:var(--status-ok)}
+
+/* axle diagram */
+.axle{background:var(--canvas);border-radius:var(--radius-md);padding:10px;overflow-x:auto}
+.axle svg{display:block;margin:0 auto;width:100%;max-width:300px;height:auto}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11.5px;color:var(--ink-muted)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+
+/* AI assistant style panel */
+.ai-panel{background:#fff;border:1px solid var(--hairline);border-radius:var(--radius-lg);overflow:hidden}
+.ai-head{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--hairline)}
+.ai-head .ttl{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--navy);
+  letter-spacing:.05em;text-transform:uppercase}
+.ai-head .beta{background:var(--yellow);color:var(--navy);font-size:9px;font-weight:800;
+  padding:2px 6px;border-radius:3px;letter-spacing:.05em}
+.ai-head svg{width:15px;height:15px;color:var(--blue)}
+.ai-b{padding:16px}
+.reason{display:grid;gap:0;margin-bottom:14px}
+.reason .row{display:grid;grid-template-columns:128px 1fr;gap:12px;padding:9px 0;
+  border-bottom:1px solid var(--hairline);align-items:baseline}
+.reason .row:last-child{border-bottom:none}
+.reason .k{font-size:10.5px;font-weight:800;color:var(--ink-faint);text-transform:uppercase;
+  letter-spacing:.03em}
+.reason .v{font-size:13px}
+.reason .v em{font-style:normal;color:var(--alert-red);font-weight:700}
+.verdict{padding:13px 15px;border-radius:var(--radius-md);background:var(--blue-tint);
+  border-left:3px solid var(--blue);font-size:13.5px;line-height:1.55}
+.verdict b{font-weight:700}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+
+/* ===================== OPTION CARDS ===================== */
+.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:stretch}
+.opt{display:flex;flex-direction:column;text-align:left;cursor:pointer;background:#fff;
+  border:1px solid var(--hairline);border-radius:var(--radius-lg);padding:17px;position:relative}
+.opt:hover{border-color:var(--hairline-strong)}
+.opt.rec{border:2px solid var(--blue);box-shadow:var(--shadow-2)}
+.opt[aria-pressed="true"]{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-tint-2)}
+.opt .tag{position:absolute;top:-10px;left:16px;background:var(--yellow);color:var(--navy);
+  font-size:10px;font-weight:800;letter-spacing:.05em;padding:3px 9px;border-radius:3px;
+  text-transform:uppercase}
+.opt .role{font-size:11px;font-weight:700;color:var(--ink-faint);margin-bottom:9px;
+  text-transform:uppercase;letter-spacing:.03em}
+.opt .brand{font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--ink-muted);
+  letter-spacing:.06em;text-transform:uppercase}
+.opt .prod{font-family:var(--font-display);font-size:19px;font-weight:700;color:var(--navy);
+  line-height:1.2;margin-top:1px}
+.opt .size{font-size:12px;color:var(--ink-muted);margin-top:2px}
+.tlabel{display:flex;gap:6px;flex-wrap:wrap;margin:11px 0 4px}
+.tlabel span{border:1px solid var(--hairline-strong);border-radius:4px;padding:2px 7px;
+  font-size:11px;color:var(--ink-muted)}
+.tlabel b{font-weight:800;color:var(--ink)}
+.opt .foot{margin-top:auto;padding-top:14px}
+.opt .stock{font-size:11.5px;color:var(--status-ok);font-weight:600;margin-bottom:9px}
+
+/* comparison bars */
+.cmp .row{display:grid;grid-template-columns:160px 1fr 82px;gap:12px;align-items:center;padding:6px 0}
+.cmp .nm{font-size:12.5px;color:var(--ink-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmp .track{height:16px;background:var(--canvas);border-radius:3px;overflow:hidden}
+.cmp .fill{height:100%;background:var(--blue);border-radius:3px}
+.cmp .fill.rec{background:var(--navy)}
+.cmp .fill.cur{background:var(--viz-bad)}
+.cmp .val{text-align:right;font-weight:700;font-size:13px}
+
+/* ===================== ORDER STEPS ===================== */
+.ostep{background:#fff;border:1px solid var(--hairline);border-radius:var(--radius-lg);
+  margin-bottom:14px;overflow:hidden}
+.ostep.off{opacity:.55}
+.ostep-h{display:flex;align-items:center;gap:11px;padding:13px 17px;border-bottom:1px solid var(--hairline)}
+.ostep-n{width:23px;height:23px;border-radius:50%;background:var(--canvas);color:var(--ink-faint);
+  display:grid;place-items:center;font-size:12px;font-weight:800;flex:none}
+.ostep.active .ostep-n{background:var(--blue);color:#fff}
+.ostep.done .ostep-n{background:var(--status-ok);color:#fff}
+.ostep-h h2{font-size:14px;font-weight:800;margin:0}
+.ostep-b{padding:17px}
+.lines .r{display:flex;justify-content:space-between;gap:12px;padding:8px 0;
+  border-bottom:1px solid var(--hairline);font-size:13.5px}
+.lines .r:last-child{border-bottom:none}
+.lines .r span{color:var(--ink-muted)}
+.lines .r.total{font-size:17px;font-weight:700;padding-top:12px;font-family:var(--font-display)}
+.lines .r.total span{color:var(--ink);font-family:var(--font-body);font-size:13.5px;align-self:center}
+.commission{font-size:11.5px;color:var(--ink-muted);margin-top:10px;padding-top:10px;
+  border-top:1px dashed var(--hairline-strong)}
+.commission b{color:var(--navy);font-weight:800}
+
+.tl{overflow-x:auto;padding:6px 0 2px}
+.tl svg{display:block;min-width:580px;max-width:100%;height:auto;margin:0 auto}
+.mk{cursor:pointer}
+.mk rect.hit{fill:transparent}
+.picks{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.pick{cursor:pointer;text-align:left;background:#fff;border:1px solid var(--hairline-strong);
+  border-radius:var(--radius-md);padding:9px 13px;font-size:12.5px}
+.pick[aria-pressed="true"]{border-color:var(--blue);background:var(--blue-tint)}
+.pick b{display:block;font-weight:800;font-size:13px}
+.pick span{color:var(--ink-muted);font-size:11.5px}
+.note{margin-top:12px;font-size:13px;color:var(--ink);background:var(--ok-tint);
+  border-left:3px solid var(--status-ok);padding:11px 14px;border-radius:var(--radius-sm)}
+
+.wslist{display:grid;gap:9px}
+.ws{text-align:left;cursor:pointer;display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+  background:#fff;border:1px solid var(--hairline-strong);border-radius:var(--radius-md);padding:12px 14px}
+.ws[aria-pressed="true"]{border-color:var(--blue);background:var(--blue-tint)}
+.ws .nm{font-weight:700;font-size:14px}
+.ws .meta{font-size:11.5px;color:var(--ink-muted);margin-top:2px}
+.slots{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.slot{border:1px solid var(--hairline-strong);border-radius:4px;padding:3px 9px;font-size:12px;
+  font-variant-numeric:tabular-nums;color:var(--ink-muted);background:#fff}
+.slot.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
+
+.confirm{border:1px solid var(--status-ok);background:var(--ok-tint);border-radius:var(--radius-lg);padding:19px}
+.confirm h2{font-family:var(--font-display);font-size:19px;font-weight:700;color:var(--status-ok);margin-bottom:4px}
+.handoff{margin-top:14px;padding:12px 14px;border-radius:var(--radius-sm);background:#fff;
+  border:1px dashed var(--hairline-strong);font-size:12px;color:var(--ink-muted);line-height:1.8}
+.handoff code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;
+  color:var(--navy);background:var(--canvas);padding:1px 5px;border-radius:3px}
+
+.footnote{margin-top:26px;font-size:11.5px;color:var(--ink-faint);max-width:92ch;line-height:1.6}
+
+@media (max-width:1040px){
+  .grid2{grid-template-columns:1fr}
+  .opts{grid-template-columns:1fr}
+  .opt.rec{order:-1}
+}
+@media (max-width:760px){
+  .app-rail{display:none}
+  .fleet-nav{gap:16px}
+  .fleet-topbar-right .tb-action{display:none}
+  .main{padding:16px 16px 40px}
+  .app-topbar,.app-subbar{padding:0 16px}
+  .status-cell{flex:1 1 140px}
+  .cmp .row{grid-template-columns:100px 1fr 70px}
+  .reason .row{grid-template-columns:1fr;gap:2px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <div class="app-topbar">
+    <div class="fleet-brand">
+      <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h11v8H2z"/><path d="M13 11h4l4 3v2h-8z"/><circle cx="6" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/></svg></div>
+      <div class="word">MICHELIN<small>Connected Fleet</small></div>
+    </div>
+    <button class="topbar-back" id="back-btn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>Back</button>
+    <div class="fleet-nav">
+      <a href="index.html">Live positions</a>
+      <a href="index.html">Journeys <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></a>
+      <a href="index.html">Maintenance</a>
+      <a class="active" data-go="fleet">Tyre advisor</a>
+      <a class="case-tab" id="case-tab" hidden data-go="vehicle"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 1 21h22z" opacity=".15"/><path d="M12 2 1 21h22L12 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 9v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg><span id="case-label"></span></a>
+    </div>
+    <div class="fleet-topbar-right">
+      <div class="tb-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span>Search</span></div>
+      <div class="tb-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span>My Alerts</span></div>
+      <div class="tb-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.3 2.9c-.6.2-.9.8-.9 1.4v.4"/><circle cx="12" cy="17.2" r=".9" fill="currentColor"/></svg><span>Help</span></div>
+      <div class="avatar">TM</div>
+    </div>
+  </div>
+
+  <div class="app-subbar">
+    <div class="pill-select"><span class="lbl">Vehicles</span>Solutrans_2025<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></div>
+    <div class="pill-select"><span class="lbl">Axle</span>Drive<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></div>
+    <div class="pill-select"><span class="lbl">Filters</span>Default<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></div>
+    <div class="seg-toggle"><button class="active">TABLE</button><button>MAP</button></div>
+    <div class="status-counters" id="counters"></div>
+  </div>
+
+  <div class="fleet-body">
+    <nav class="app-rail" aria-label="Modules">
+      <div class="ic" title="Live positions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h11v8H2z"/><path d="M13 11h4l4 3v2h-8z"/><circle cx="6" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/></svg></div>
+      <div class="ic" title="Map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></div>
+      <div class="ic" title="Reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
+      <div class="ic active" title="Tyre advisor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.4"/><path d="M12 3v5.6M12 15.4V21M3 12h5.6M15.4 12H21" stroke-linecap="round"/></svg></div>
+      <div class="ic" title="Maintenance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0 5.3 5.3l-8 8a2.5 2.5 0 0 1-3.6-3.6z"/></svg></div>
+    </nav>
+
+    <main class="main">
+      <div class="inner">
+        <section id="screen-fleet"></section>
+        <section id="screen-vehicle" hidden></section>
+        <section id="screen-select" hidden></section>
+        <section id="screen-order" hidden></section>
+        <p class="footnote" id="footnote"></p>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+/* ------------------------------------------------------------------ *
+ * MCF Tyre Advisor — clickable front-end prototype, no backend.
+ * Design system inherited from the Hummingbird breakdown prototype.
+ * All figures are mock. Deterministic: no randomness at render time.
+ * ------------------------------------------------------------------ */
+
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;
+  var t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;
+  return((t^t>>>14)>>>0)/4294967296;};}
+
+const DUTY = {
+  long_haul:   {label:'Long haul',   pattern:'Long-haul'},
+  regional:    {label:'Regional',    pattern:'Regional'},
+  urban:       {label:'Urban',       pattern:'Urban'},
+  construction:{label:'Construction',pattern:'On/off-road'}
+};
+
+const SKUS = {
+  long_haul:[
+    {brand:'Continental', prod:'Conti EcoPlus HD5', size:'315/70 R22.5', rr:'B', wet:'B', db:71, life:190000, price:742, role:'Lowest qualifying price'},
+    {brand:'MICHELIN',    prod:'X Line Energy D2',  size:'315/70 R22.5', rr:'B', wet:'B', db:71, life:238000, price:812, role:'Best cost per 1,000 km'},
+    {brand:'MICHELIN',    prod:'X Multi Energy D',  size:'315/70 R22.5', rr:'C', wet:'B', db:72, life:264000, price:948, role:'Longest service life'}
+  ],
+  regional:[
+    {brand:'Goodyear',    prod:'KMAX D Gen-2',      size:'315/70 R22.5', rr:'C', wet:'B', db:72, life:152000, price:688, role:'Lowest qualifying price'},
+    {brand:'MICHELIN',    prod:'X Multi D',         size:'315/70 R22.5', rr:'C', wet:'B', db:73, life:186000, price:769, role:'Best cost per 1,000 km'},
+    {brand:'MICHELIN',    prod:'X Multi D2',        size:'315/70 R22.5', rr:'C', wet:'A', db:73, life:205000, price:874, role:'Longest service life'}
+  ],
+  urban:[
+    {brand:'Bridgestone', prod:'R-Drive 002',       size:'295/80 R22.5', rr:'C', wet:'B', db:73, life:118000, price:604, role:'Lowest qualifying price'},
+    {brand:'MICHELIN',    prod:'X InCity HL',       size:'295/80 R22.5', rr:'C', wet:'A', db:71, life:146000, price:712, role:'Best cost per 1,000 km'},
+    {brand:'MICHELIN',    prod:'X InCity Z',        size:'295/80 R22.5', rr:'D', wet:'A', db:72, life:161000, price:806, role:'Longest service life'}
+  ],
+  construction:[
+    {brand:'Continental', prod:'HDC 1',             size:'13 R22.5',     rr:'D', wet:'C', db:75, life:104000, price:796, role:'Lowest qualifying price'},
+    {brand:'MICHELIN',    prod:'X Works D',         size:'13 R22.5',     rr:'D', wet:'C', db:74, life:132000, price:889, role:'Best cost per 1,000 km'},
+    {brand:'MICHELIN',    prod:'X Works HD D',      size:'13 R22.5',     rr:'E', wet:'C', db:75, life:148000, price:1012,role:'Longest service life'}
+  ]
+};
+
+const WORKSHOPS = [
+  {name:'Euromaster Berlin-Marzahn', km:6.2,  slots:['07:30','11:00','14:30'], dur:'2 h 15'},
+  {name:'Reifen Nord GmbH, Hohenschönhausen', km:11.8, slots:['08:00','13:00'], dur:'2 h 40'},
+  {name:'First Stop Lichtenberg', km:14.1, slots:['09:15','12:45','16:00'], dur:'2 h 30'}
+];
+
+const MAKES = [
+  ['Mercedes-Benz','Actros 1851'],['MAN','TGX 18.510'],['Scania','R 450'],
+  ['Volvo','FH 460'],['DAF','XF 480'],['Iveco','S-Way 490'],['Renault','T High 480'],
+  ['Mercedes-Benz','Atego 1224'],['MAN','TGS 26.400']
+];
+const LOCS = ['Berlin','Hamburg','Duisburg','Leipzig','Köln','Hannover'];
+const FITTED = {
+  long_haul:['MICHELIN','X Line Energy D2','315/70 R22.5'],
+  regional:['MICHELIN','X Multi D','315/70 R22.5'],
+  urban:['MICHELIN','X InCity HL','295/80 R22.5'],
+  construction:['MICHELIN','X Works D','13 R22.5']
+};
+
+function buildFleet(){
+  const r = rng(20260922);
+  const out = [];
+
+  out.push({
+    id:'V001', plate:'B-MC 4471', make:'Mercedes-Benz', model:'Actros 1851', loc:'Berlin',
+    duty:'long_haul', kmYear:128000, odo:412500,
+    roadMix:[78,19,3], axleLoad:9.1, loadFactor:84, harsh:42, score:78,
+    fitted:['MICHELIN','X Multi D','315/70 R22.5'], fittedDuty:'regional',
+    tread:5.2, wearRate:0.98, expectedWear:0.75, dueDays:28, fit:'bad', deltaPa:0
+  });
+
+  const plan = [];
+  for(let i=0;i<47;i++) plan.push(i<11?'bad':(i<20?'sub':'ok'));
+
+  for(let i=0;i<47;i++){
+    const mk = MAKES[Math.floor(r()*MAKES.length)];
+    const duty = ['long_haul','long_haul','regional','regional','urban','construction'][Math.floor(r()*6)];
+    const fit = plan[i];
+    const fittedDuty = fit==='ok' ? duty
+      : (duty==='long_haul' ? 'regional' : (duty==='regional' ? 'long_haul' : 'regional'));
+    const f = FITTED[fittedDuty];
+    const kmYear = Math.round((duty==='long_haul'?110000:duty==='regional'?72000:duty==='urban'?41000:38000) * (0.82+r()*0.36) / 500)*500;
+    const tread = i<9 ? Math.round((1.9 + r()*1.15)*10)/10 : Math.round((4.2 + r()*9.3)*10)/10;
+    const wearRate0 = Math.round((0.55+r()*0.62)*100)/100;
+    const kmToLimit = Math.max(0,(tread-1.6))/wearRate0*10000;
+    const dueDays = Math.max(5, Math.round(kmToLimit / (kmYear/365)));
+    out.push({
+      id:'V'+String(i+2).padStart(3,'0'),
+      plate: ['B','HH','DU','L','K','H'][Math.floor(r()*6)]
+             +'-'+String.fromCharCode(65+Math.floor(r()*26))+String.fromCharCode(65+Math.floor(r()*26))
+             +' '+(1000+Math.floor(r()*8999)),
+      make:mk[0], model:mk[1], loc:LOCS[Math.floor(r()*LOCS.length)],
+      duty, kmYear, odo: Math.round((120000+r()*640000)/500)*500,
+      roadMix: duty==='long_haul'?[74+Math.floor(r()*12),0,0]:duty==='regional'?[38+Math.floor(r()*18),0,0]:duty==='urban'?[12+Math.floor(r()*10),0,0]:[22+Math.floor(r()*12),0,0],
+      axleLoad: Math.round((6.4+r()*3.6)*10)/10,
+      loadFactor: 58+Math.floor(r()*36),
+      harsh: 12+Math.floor(r()*44),
+      score: 62+Math.floor(r()*34),
+      fitted:[f[0],f[1],f[2]], fittedDuty,
+      tread, wearRate: wearRate0,
+      expectedWear: Math.round((wearRate0*(fit==='bad'?0.72:fit==='sub'?0.9:1.0))*100)/100,
+      dueDays, fit, deltaPa:0
+    });
+  }
+  out.forEach(v=>{
+    if(v.roadMix[1]===0 && v.roadMix[2]===0){
+      const m=v.roadMix[0];
+      const u = v.duty==='urban' ? Math.round((100-m)*0.62) : Math.round((100-m)*0.16);
+      v.roadMix=[m,100-m-u,u];
+    }
+  });
+  return out;
+}
+
+const FLEET = buildFleet();
+const ORDERS = {};
+
+const eur = n => new Intl.NumberFormat('en-GB',{maximumFractionDigits:0}).format(Math.round(n));
+const eur2 = n => new Intl.NumberFormat('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+const int = n => new Intl.NumberFormat('en-GB').format(Math.round(n));
+
+const SET = 4;
+const RR = {A:0,B:1,C:2,D:3,E:4};
+const DIESEL_EUR_L = 1.45, L_PER_100KM = 30, FUEL_PCT_PER_RR_BAND = 0.012;
+
+function costPerK(sku){ return sku.price * SET / (sku.life/1000); }
+function recFor(v){ return SKUS[v.duty][1]; }
+function fittedSku(v){ return (SKUS[v.fittedDuty] || SKUS[v.duty])[1]; }
+const MISMATCH = { long_haul:1.34, regional:1.28, urban:1.42, construction:1.85 };
+function currentCostPerK(v){
+  const penalty = v.fit==='bad' ? MISMATCH[v.duty] : v.fit==='sub' ? 1.09 : 1.0;
+  return costPerK(fittedSku(v)) * penalty;
+}
+function fuelSaving(v, sku){
+  const bands = RR[fittedSku(v).rr] - RR[sku.rr];
+  if(bands <= 0) return 0;
+  return bands * FUEL_PCT_PER_RR_BAND * (v.kmYear/100*L_PER_100KM) * DIESEL_EUR_L;
+}
+function tyreSaving(v, sku){ return (currentCostPerK(v) - costPerK(sku)) * v.kmYear / 1000; }
+function deltaFor(v, sku){ return Math.max(0, tyreSaving(v, sku) + fuelSaving(v, sku)); }
+
+FLEET.forEach(v => { v.deltaPa = v.fit==='ok' ? 0 : Math.round(deltaFor(v, recFor(v))); });
+FLEET.forEach(v => { v.pin = v.id==='V001' ? 0 : 1; });
+
+function treadColour(mm){ return mm >= 8 ? 'var(--status-ok)' : mm >= 4 ? 'var(--status-defect)' : 'var(--alert-red)'; }
+function dueText(d){
+  if(d <= 14) return d + ' days';
+  if(d < 70) return Math.round(d/7) + ' weeks';
+  if(d < 190) return Math.round(d/30) + ' months';
+  return '> 6 months';
+}
+function dueClass(d){ return d <= 30 ? 'soon' : d <= 70 ? 'mid' : ''; }
+function fitLabel(f){ return f==='ok' ? 'Correct fit' : f==='sub' ? 'Suboptimal' : 'Wrong spec'; }
+function dateIn(days){
+  const d = new Date(2026, 8, 22);
+  d.setDate(d.getDate()+days);
+  return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+}
+
+let state = { screen:'fleet', vehicle:null, sku:null, dateChoice:null, workshop:null, slot:null, step:1, filter:'all', q:'' };
+
+/* ---------------- counters in the sub bar ---------------- */
+function renderCounters(){
+  const ok = FLEET.filter(v=>v.fit==='ok').length;
+  const sub = FLEET.filter(v=>v.fit==='sub').length;
+  const bad = FLEET.filter(v=>v.fit==='bad').length;
+  document.getElementById('counters').innerHTML = `
+    <div class="item ok"><span class="dot" style="background:var(--status-ok)"></span>Correct fit <b class="num">${ok}</b></div>
+    <div class="item sub"><span class="dot" style="background:var(--status-defect)"></span>Suboptimal <b class="num">${sub}</b></div>
+    <div class="item bad"><span class="dot" style="background:var(--alert-red)"></span>Wrong spec <b class="num">${bad}</b></div>`;
+}
+
+/* ================= SCREEN 1 — fleet ================= */
+function renderFleet(){
+  const wrong = FLEET.filter(v=>v.fit==='bad').length;
+  const dueSoon = FLEET.filter(v=>v.dueDays<=30).length;
+  const savings = FLEET.reduce((s,v)=>s+v.deltaPa,0);
+
+  let rows = FLEET.filter(v=>{
+    if(state.filter!=='all' && v.duty!==state.filter) return false;
+    if(state.q){
+      const q = state.q.toLowerCase();
+      if(!(v.plate+' '+v.make+' '+v.model+' '+v.loc).toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+  const rank = {bad:0, sub:1, ok:2};
+  rows = rows.slice().sort((a,b)=> a.pin-b.pin || rank[a.fit]-rank[b.fit] || a.dueDays-b.dueDays);
+
+  const chips = [['all','All'],['long_haul','Long haul'],['regional','Regional'],['urban','Urban'],['construction','Construction']]
+    .map(([k,l])=>`<button class="fchip" data-filter="${k}" aria-pressed="${state.filter===k}">${l}</button>`).join('');
+
+  const body = rows.map(v=>{
+    const o = ORDERS[v.id], rec = recFor(v);
+    return `<tr class="${o?'done':'clickable'}" data-v="${v.id}">
+      <td class="name"><div class="plate">${v.plate}</div><span class="sub">${v.make} ${v.model} &middot; ${v.loc}</span></td>
+      <td><span class="badge-duty">${DUTY[v.duty].label}</span></td>
+      <td class="r num">${int(v.kmYear)}</td>
+      <td style="white-space:nowrap">${v.fitted[1]}<span class="sub">${v.fitted[0]} &middot; ${v.fitted[2]}</span></td>
+      <td><div class="tread"><div class="track"><div class="fill" style="width:${Math.min(100,v.tread/14*100)}%;background:${treadColour(v.tread)}"></div></div><b class="num">${v.tread.toFixed(1)} mm</b></div></td>
+      <td class="due ${dueClass(v.dueDays)}">${dueText(v.dueDays)}</td>
+      <td><span class="fit ${v.fit}"><i class="dot"></i>${fitLabel(v.fit)}</span></td>
+      <td class="r num">${v.deltaPa ? '€'+eur(v.deltaPa) : '<span style="color:var(--ink-faint)">—</span>'}</td>
+      <td style="white-space:nowrap">${v.fit==='ok' ? '<span style="color:var(--ink-faint)">No change</span>' : `${rec.prod}<span class="sub">${rec.brand}</span>`}</td>
+      <td class="r">${o ? `<span class="booked">Booked ${o.dateLabel}</span>` : `<button class="btn btn-outline btn-sm" data-v="${v.id}">Review</button>`}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('screen-fleet').innerHTML = `
+    <div class="screen-head">
+      <div class="eyebrow">Customer pain 5 &middot; Incorrect tyre use persists</div>
+      <h1>Fleet tyre overview</h1>
+      <p>Every vehicle scored on whether the tyre fitted to it matches what the vehicle actually does, not only on how worn it is.</p>
+    </div>
+
+    <div class="status-strip">
+      <div class="status-cell"><div class="h">Vehicles connected</div><div class="v num">${FLEET.length}</div><div class="t">Tractor units, drive axle</div></div>
+      <div class="status-cell"><div class="h">Replacement due &lt; 30 days</div><div class="v num">${dueSoon}</div><div class="t">From measured wear rate</div></div>
+      <div class="status-cell bad"><div class="h">Wrong specification</div><div class="v num">${wrong}</div><div class="t">Spec does not match duty cycle</div></div>
+      <div class="status-cell money"><div class="h">Annual saving available</div><div class="v num">€${eur(savings)}</div><div class="t">Across all flagged vehicles</div></div>
+    </div>
+
+    <div class="filters">
+      ${chips}
+      <input class="fsearch" id="fleet-search" type="search" placeholder="Search plate, model or depot" value="${state.q}" aria-label="Search fleet">
+    </div>
+
+    <div class="ws-table-wrap"><div class="tscroll"><table class="ws-table">
+      <thead><tr>
+        <th>Vehicle</th><th>Duty profile</th><th class="r">km / year</th><th>Fitted tyre</th>
+        <th>Tread</th><th>Due in</th><th>Fit</th><th class="r">Saving p.a.</th><th>Recommended</th><th class="r">Action</th>
+      </tr></thead>
+      <tbody>${body || '<tr><td colspan="10" style="padding:24px;text-align:center;color:var(--ink-faint)">No vehicles match this filter.</td></tr>'}</tbody>
+    </table></div></div>`;
+
+  document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{state.filter=b.dataset.filter;renderFleet();});
+  const s = document.getElementById('fleet-search');
+  s.oninput = e => { state.q = e.target.value; const pos = e.target.selectionStart; renderFleet();
+    const n = document.getElementById('fleet-search'); n.focus(); n.setSelectionRange(pos,pos); };
+  document.querySelectorAll('tr.clickable, button[data-v]').forEach(el=>{
+    el.onclick = ev => { ev.stopPropagation(); openVehicle(el.dataset.v); };
+  });
+}
+
+/* ================= SCREEN 2 — vehicle ================= */
+/* Top-down schematic in the same idiom as the breakdown prototype's live sensor
+   map: cab at the top, wheels as colour-coded dots, detail on hover. */
+function axleSVG(v){
+  const worn = v.tread, steer = Math.min(13.5, v.tread + 3.1);
+  const wheels = [
+    {x:46,  y:96,  id:'1L',  mm:steer, pos:'Steer axle, left'},
+    {x:154, y:96,  id:'1R',  mm:steer, pos:'Steer axle, right'},
+    {x:46,  y:236, id:'2LO', mm:Math.round((worn+0.4)*10)/10, pos:'Drive axle, left outer'},
+    {x:46,  y:266, id:'2LI', mm:worn,                          pos:'Drive axle, left inner'},
+    {x:154, y:236, id:'2RO', mm:Math.round((worn+0.6)*10)/10, pos:'Drive axle, right outer'},
+    {x:154, y:266, id:'2RI', mm:Math.round((worn+0.2)*10)/10, pos:'Drive axle, right inner'}
+  ];
+  const worst = Math.min.apply(null, wheels.map(k=>k.mm));
+  const w = wheels.map(k=>{
+    const left = k.x < 100;
+    const tx = left ? k.x - 16 : k.x + 16;
+    const anchor = left ? 'end' : 'start';
+    const isWorst = k.mm === worst;
+    return `<g>
+      ${isWorst ? `<circle cx="${k.x}" cy="${k.y}" r="15" fill="none" stroke="${treadColour(k.mm)}" stroke-width="1.5" opacity=".45"/>` : ''}
+      <circle cx="${k.x}" cy="${k.y}" r="11" fill="${treadColour(k.mm)}"><title>${k.pos} — ${k.mm.toFixed(1)} mm tread remaining</title></circle>
+      <text x="${tx}" y="${k.y - 1}" text-anchor="${anchor}" font-size="11.5" font-weight="800" fill="var(--ink)">${k.mm.toFixed(1)} mm</text>
+      <text x="${tx}" y="${k.y + 11}" text-anchor="${anchor}" font-size="9.5" fill="var(--ink-faint, #9CA3AF)" letter-spacing=".6">${k.id}</text>
+    </g>`;
+  }).join('');
+  return `<svg viewBox="-58 0 316 320" role="img" aria-label="Wheel positions with measured tread depth">
+    <rect x="52" y="118" width="96" height="176" rx="6" fill="#F2F3F5" stroke="#CBD0D9" stroke-width="1.5"/>
+    <rect x="66" y="58" width="68" height="62" rx="10" fill="#E7EAF0" stroke="#CBD0D9" stroke-width="1.5"/>
+    <rect x="76" y="66" width="48" height="18" rx="3" fill="#C7D0DE"/>
+    <line x1="100" y1="120" x2="100" y2="294" stroke="#CBD0D9" stroke-width="1" stroke-dasharray="3 4"/>
+    <text x="100" y="42" text-anchor="middle" font-size="9.5" fill="#9CA3AF" letter-spacing="1.2">FRONT</text>
+    ${w}
+    <text x="100" y="314" text-anchor="middle" font-size="10" fill="#6B7280">${v.plate} · ${v.make} ${v.model}</text>
+  </svg>`;
+}
+
+function openVehicle(id){
+  state.vehicle = FLEET.find(v=>v.id===id);
+  state.sku=null; state.dateChoice=null; state.workshop=null; state.slot=null; state.step=1;
+  go('vehicle');
+}
+
+function renderVehicle(){
+  const v = state.vehicle; if(!v) return;
+  const rec = recFor(v);
+  const over = Math.round((v.wearRate/v.expectedWear - 1)*100);
+  const extraKm = Math.round((rec.life - fittedSku(v).life)/1000)*1000;
+  const bands = RR[fittedSku(v).rr] - RR[rec.rr];
+
+  document.getElementById('screen-vehicle').innerHTML = `
+    <div class="vhead">
+      <div>
+        <div class="eyebrow" style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint)">Vehicle</div>
+        <div class="plate">${v.plate}</div>
+        <div style="font-size:12px;color:var(--ink-muted)">${v.make} ${v.model} &middot; ${v.loc} depot</div>
+      </div>
+      <div class="vfacts">
+        <div class="vfact"><div class="k">Duty profile</div><div class="v">${DUTY[v.duty].label}</div></div>
+        <div class="vfact"><div class="k">Odometer</div><div class="v num">${int(v.odo)} km</div></div>
+        <div class="vfact"><div class="k">Annual mileage</div><div class="v num">${int(v.kmYear)} km</div></div>
+        <div class="vfact"><div class="k">Replacement due</div><div class="v">${dueText(v.dueDays)} &middot; ${dateIn(v.dueDays)}</div></div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="stack">
+        <div class="card card-b">
+          <h2>Wheel positions</h2>
+          <div class="axle">${axleSVG(v)}</div>
+          <div class="legend">
+            <span><i style="background:var(--status-ok)"></i>8 mm and above</span>
+            <span><i style="background:var(--status-defect)"></i>4 to 8 mm</span>
+            <span><i style="background:var(--alert-red)"></i>below 4 mm</span>
+            <span>Legal limit 1.6 mm</span>
+          </div>
+        </div>
+        <div class="card card-b">
+          <h2>Fitted on the drive axle</h2>
+          <div class="spec">
+            <div class="r"><span>Product</span><b>${v.fitted[0]} ${v.fitted[1]}</b></div>
+            <div class="r"><span>Size</span><b>${v.fitted[2]}</b></div>
+            <div class="r"><span>Intended application</span><b>${DUTY[v.fittedDuty].pattern}</b></div>
+            <div class="r"><span>Measured tread, worst position</span><b class="num">${v.tread.toFixed(1)} mm</b></div>
+            <div class="r"><span>Wear rate</span><b class="num">${v.wearRate.toFixed(2)} mm / 10,000 km</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="ai-panel">
+          <div class="ai-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M18 16.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>
+            <span class="ttl">AI Assistant</span><span class="beta">BETA</span>
+          </div>
+          <div class="ai-b">
+            <div class="reason">
+              <div class="row"><div class="k">Road profile</div><div class="v">${v.roadMix[0]}% motorway, ${v.roadMix[1]}% rural, ${v.roadMix[2]}% urban <span style="color:var(--ink-faint)">(trailing 9 months)</span></div></div>
+              <div class="row"><div class="k">Axle load</div><div class="v">${v.axleLoad.toFixed(1)} t mean on the drive axle, ${v.loadFactor}% load factor</div></div>
+              <div class="row"><div class="k">Driving style</div><div class="v">${v.harsh} harsh brakes per 1,000 km, driver score ${v.score}</div></div>
+              <div class="row"><div class="k">Wear rate</div><div class="v">${v.wearRate.toFixed(2)} mm per 10,000 km, <em>${over}% above expectation</em> for this duty cycle</div></div>
+            </div>
+            <div class="verdict">
+              A <b>${DUTY[v.fittedDuty].pattern.toLowerCase()}</b> casing is fitted to a vehicle running a
+              <b>${DUTY[v.duty].label.toLowerCase()}</b> profile, so it wears faster than it needs to.
+              A ${DUTY[v.duty].pattern.toLowerCase()} specification is rated for roughly
+              <b class="num">${int(extraKm)} km</b> more per set on this duty cycle.
+            </div>
+            <div class="actions">
+              <button class="btn btn-primary" id="to-select">Choose replacement tyre</button>
+              <button class="btn btn-outline" data-go="fleet">Remind me later</button>
+            </div>
+          </div>
+        </div>
+        <div class="card card-b">
+          <h2>What it costs today, and what it would cost</h2>
+          <div class="cost-hero">
+            <div class="ch-main">
+              <div class="ch-lbl">Saving per 1,000 km</div>
+              <div class="ch-fig num good">€${eur2(Math.max(0, currentCostPerK(v) - costPerK(rec)))}</div>
+            </div>
+            <div class="ch-split">
+              <div><div class="ch-lbl">Running today</div><div class="ch-sub num">€${eur2(currentCostPerK(v))}</div></div>
+              <div class="ch-arrow">→</div>
+              <div><div class="ch-lbl">Recommended</div><div class="ch-sub num">€${eur2(costPerK(rec))}</div></div>
+            </div>
+          </div>
+          <div class="spec">
+            <div class="r"><span>New set of four, purchase price</span><b class="num">€${eur(rec.price*SET)}</b></div>
+            <div class="r"><span>Expected life, recommended set</span><b class="num">${int(rec.life)} km</b></div>
+            <div class="r"><span>Tyre spend saved, per year</span><b class="good num">€${eur(Math.max(0,tyreSaving(v,rec)))}</b></div>
+            <div class="r"><span>Fuel saved, ${bands} rolling-resistance band${bands===1?'':'s'}</span><b class="good num">€${eur(fuelSaving(v,rec))}</b></div>
+            <div class="r hi"><span>Total at ${int(v.kmYear)} km per year</span><b class="good num">€${eur(deltaFor(v,rec))}</b></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('to-select').onclick = ()=>go('select');
+  bindGo(document.getElementById('screen-vehicle'));
+}
+
+/* ================= SCREEN 3 — selection ================= */
+function renderSelect(){
+  const v = state.vehicle; if(!v) return;
+  const opts = SKUS[v.duty];
+  const curCost = currentCostPerK(v);
+  const maxCost = Math.max(curCost, ...opts.map(costPerK));
+
+  const cards = opts.map((s,i)=>{
+    const d = deltaFor(v,s);
+    return `<button class="opt ${i===1?'rec':''}" data-sku="${i}" aria-pressed="${state.sku===i}">
+      ${i===1?'<span class="tag">Recommended</span>':''}
+      <div class="role">${s.role}</div>
+      <div class="brand">${s.brand}</div>
+      <div class="prod">${s.prod}</div>
+      <div class="size">${s.size}</div>
+      <div class="tlabel"><span>Rolling <b>${s.rr}</b></span><span>Wet <b>${s.wet}</b></span><span>Noise <b>${s.db} dB</b></span></div>
+      <div class="spec">
+        <div class="r"><span>Expected life</span><b class="num">${int(s.life)} km</b></div>
+        <div class="r"><span>Price per tyre</span><b class="num">€${eur(s.price)}</b></div>
+        <div class="r"><span>Set of 4, drive axle</span><b class="num">€${eur(s.price*4)}</b></div>
+        <div class="r"><span>Set cost per 1,000 km</span><b class="num">€${eur2(costPerK(s))}</b></div>
+        <div class="r hi"><span>Versus fitted, per year</span><b class="good num">€${eur(d)}</b></div>
+      </div>
+      <div class="foot">
+        <div class="stock">In stock &middot; delivery ${s.brand==='MICHELIN'?3:4} working days</div>
+        <span class="btn btn-primary" style="width:100%">${state.sku===i?'Selected':'Select'}</span>
+      </div>
+    </button>`;
+  }).join('');
+
+  const bars = [
+    {nm:`Fitted: ${v.fitted[1]}`, val:curCost, cls:'cur'},
+    ...opts.map((s,i)=>({nm:s.prod, val:costPerK(s), cls:i===1?'rec':''}))
+  ].map(b=>`<div class="row">
+      <div class="nm">${b.nm}</div>
+      <div class="track"><div class="fill ${b.cls}" style="width:${(b.val/maxCost*100).toFixed(1)}%"></div></div>
+      <div class="val num">€${eur2(b.val)}</div>
+    </div>`).join('');
+
+  document.getElementById('screen-select').innerHTML = `
+    <div class="screen-head">
+      <div class="eyebrow">${v.plate} &middot; drive axle &middot; 4 tyres</div>
+      <h1>Three tyres rated for this duty cycle</h1>
+      <p>Ranked on cost per 1,000 km for a ${DUTY[v.duty].label.toLowerCase()} profile at ${int(v.kmYear)} km per year. Competitor products are rated on the same basis.</p>
+    </div>
+    <div class="opts">${cards}</div>
+    <div class="card card-b cmp" style="margin-top:18px">
+      <h2>Cost per 1,000 km, set of four</h2>
+      ${bars}
+      <p style="margin:12px 0 0;font-size:12px;color:var(--ink-muted)">Lower is better. The fitted tyre carries a wear penalty because its casing is not rated for this duty cycle.</p>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" id="to-order" ${state.sku===null?'disabled':''}>Continue to order</button>
+      <button class="btn btn-ghost" data-go="vehicle">Back to ${v.plate}</button>
+    </div>`;
+
+  document.querySelectorAll('[data-sku]').forEach(b=>b.onclick=()=>{ state.sku = +b.dataset.sku; renderSelect(); });
+  document.getElementById('to-order').onclick = ()=>{ if(state.sku!==null) go('order'); };
+  bindGo(document.getElementById('screen-select'));
+}
+
+/* ================= SCREEN 4 — order ================= */
+function timelineSVG(v, marks){
+  const W=640,H=128,L=34,R=26,y=62,span=56;
+  const x = d => L + (d/span) * (W-L-R);
+  const ticks = [0,1,2,3,4,5,6,7,8].map(w=>{
+    const px = x(w*7);
+    return `<line x1="${px}" y1="${y-7}" x2="${px}" y2="${y+7}" stroke="#E1E3E8" stroke-width="1"/>
+            <text x="${px}" y="${y+25}" text-anchor="middle" font-size="10.5" fill="#9CA3AF">${w===0?'now':'wk '+w}</text>`;
+  }).join('');
+  const pins = marks.map((m,i)=>{
+    const px = x(m.day), up = i!==1, ty = up ? y-16 : y+44, on = state.dateChoice===i;
+    return `<g class="mk" data-mark="${i}" tabindex="0" role="button" aria-label="${m.label}, ${dateIn(m.day)}">
+      <rect class="hit" x="${px-48}" y="${up?y-44:y+18}" width="96" height="40"/>
+      <line x1="${px}" y1="${y}" x2="${px}" y2="${up?y-14:y+14}" stroke="${m.colour}" stroke-width="${on?2.5:1.5}"/>
+      <circle cx="${px}" cy="${y}" r="${on?6.5:5}" fill="${m.colour}" stroke="#fff" stroke-width="2"/>
+      <text x="${px}" y="${ty}" text-anchor="middle" font-size="11" font-weight="${on?'800':'700'}" fill="${m.colour}">${m.label}</text>
+      <text x="${px}" y="${ty+13}" text-anchor="middle" font-size="10.5" fill="#9CA3AF">${dateIn(m.day)}</text>
+    </g>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Replacement timing over the next eight weeks">
+    <line x1="${L}" y1="${y}" x2="${W-R}" y2="${y}" stroke="#CBD0D9" stroke-width="2"/>${ticks}${pins}
+  </svg>`;
+}
+
+/* ---------- Handover to index.html (breakdown & maintenance agent) ----------
+   Same payload twice: sessionStorage so a plain click-through carries it, and
+   the query string so the link stays meaningful when copied or bookmarked. */
+function handoverPayload(){
+  const v = state.vehicle; if(!v || state.sku===null || state.workshop===null) return {};
+  const s = SKUS[v.duty][state.sku];
+  const ws = WORKSHOPS[state.workshop];
+  const day = Math.max(4, v.dueDays-10);
+  const marks = [day, v.dueDays, Math.min(56, v.dueDays+9)];
+  return {
+    job_type: 'tyre_replacement',
+    vehicle_id: v.id,
+    plate: v.plate,
+    workshop_id: 'W' + String(state.workshop+1).padStart(2,'0'),
+    workshop_name: ws.name,
+    appointment_date: dateIn(marks[state.dateChoice] ?? day),
+    order_id: 'ORD-' + v.id + '-01',
+    product: s.brand + ' ' + s.prod
+  };
+}
+function handOver(){
+  try{ sessionStorage.setItem('mcf_tyre_job', JSON.stringify(handoverPayload())); }catch(e){}
+}
+
+function renderOrder(){
+  const v = state.vehicle, s = SKUS[v.duty][state.sku]; if(!s) return;
+  const net = s.price*4, vat = net*0.19, gross = net+vat, comm = Math.round(net*0.10);
+  const marks = [
+    {day: Math.max(4, v.dueDays-10), label:'Economic optimum', colour:'#22A45D'},
+    {day: v.dueDays,                 label:'Legal limit 1.6 mm', colour:'#C7362A'},
+    {day: Math.min(56, v.dueDays+9), label:'Planned service',   colour:'#6B7280'}
+  ];
+  const st = state.step;
+  const ws = state.workshop!==null ? WORKSHOPS[state.workshop] : null;
+
+  document.getElementById('screen-order').innerHTML = `
+    <div class="screen-head">
+      <div class="eyebrow">${v.plate} &middot; ${s.brand} ${s.prod}</div>
+      <h1>Order and schedule</h1>
+      <p>Ordered directly through MyConnectedFleet. No dealer portal and no separate purchase order.</p>
+    </div>
+
+    <div class="ostep ${st>1?'done':'active'}">
+      <div class="ostep-h"><div class="ostep-n">${st>1?'✓':'1'}</div><h2>Order</h2></div>
+      <div class="ostep-b">
+        <div class="lines">
+          <div class="r"><span>${s.brand} ${s.prod}, ${s.size}</span><b class="num">4 × €${eur(s.price)}</b></div>
+          <div class="r"><span>Wheel positions</span><b>2LO &middot; 2LI &middot; 2RI &middot; 2RO</b></div>
+          <div class="r"><span>Net</span><b class="num">€${eur(net)}</b></div>
+          <div class="r"><span>VAT 19%</span><b class="num">€${eur(vat)}</b></div>
+          <div class="r total"><span>Total</span><b class="num">€${eur(gross)}</b></div>
+        </div>
+        <div class="spec"><div class="r"><span>Deliver to</span><b>${ws ? ws.name : 'Fitting workshop, selected in step 3'}</b></div></div>
+        <div class="commission">MCF commission on this order: <b>€${eur(comm)}</b> &middot; 10% of net, €80 per tyre at an €800 average</div>
+        ${st===1?'<div class="actions"><button class="btn btn-primary" id="do-order">Place order</button><button class="btn btn-ghost" data-go="select">Back to selection</button></div>':''}
+      </div>
+    </div>
+
+    <div class="ostep ${st<2?'off':st>2?'done':'active'}">
+      <div class="ostep-h"><div class="ostep-n">${st>2?'✓':'2'}</div><h2>Replacement timing</h2></div>
+      ${st<2?'':`<div class="ostep-b">
+        <div class="tl">${timelineSVG(v, marks)}</div>
+        <div class="picks">
+          ${marks.map((m,i)=>`<button class="pick" data-mark="${i}" aria-pressed="${state.dateChoice===i}"><b>${m.label}</b><span>${dateIn(m.day)} &middot; ${dueText(m.day)} from now</span></button>`).join('')}
+        </div>
+        <div class="note">Replacing at the economic optimum rather than at the legal limit preserves <b>€310</b> of casing value for retreading, and closes one roadside risk window.</div>
+        ${st===2?`<div class="actions"><button class="btn btn-primary" id="do-date" ${state.dateChoice===null?'disabled':''}>Confirm date</button></div>`:''}
+      </div>`}
+    </div>
+
+    <div class="ostep ${st<3?'off':st>3?'done':'active'}">
+      <div class="ostep-h"><div class="ostep-n">${st>3?'✓':'3'}</div><h2>Workshop appointment</h2></div>
+      ${st<3?'':`<div class="ostep-b">
+        <div class="wslist">
+          ${WORKSHOPS.map((w,i)=>`<button class="ws" data-ws="${i}" aria-pressed="${state.workshop===i}">
+            <div><div class="nm">${w.name}</div><div class="meta">${w.km} km from ${v.loc} depot &middot; ${w.dur} fitting time</div></div>
+            <div class="slots">${w.slots.map((t,j)=>`<span class="slot ${state.workshop===i&&state.slot===j?'on':''}">${t}</span>`).join('')}</div>
+          </button>`).join('')}
+        </div>
+        ${st===3?`<div class="actions"><button class="btn btn-primary" id="do-book" ${state.workshop===null?'disabled':''}>Book appointment</button></div>`:''}
+      </div>`}
+    </div>
+
+    ${st>3?`<div class="confirm">
+      <h2>Booked</h2>
+      <p style="margin:0 0 12px;font-size:13.5px">${s.brand} ${s.prod} × 4 for ${v.plate}, fitted ${dateIn(marks[state.dateChoice].day)} at ${ws.slots[state.slot]}.</p>
+      <div class="spec">
+        <div class="r"><span>Workshop</span><b>${ws.name}</b></div>
+        <div class="r"><span>Delivery to workshop</span><b>${dateIn(Math.max(1,marks[state.dateChoice].day-2))}</b></div>
+        <div class="r"><span>Order total</span><b class="num">€${eur(gross)}</b></div>
+        <div class="r"><span>Vehicle off road</span><b>${ws.dur}</b></div>
+      </div>
+      <div class="handoff">
+        Handed over to the breakdown and maintenance agent:
+        <code>job_type="tyre_replacement"</code>
+        <code>vehicle_id="${v.id}"</code>
+        <code>workshop_id="W${String(state.workshop+1).padStart(2,'0')}"</code>
+        <code>appointment_date="${dateIn(marks[state.dateChoice].day)}"</code>
+        <code>order_id="ORD-${v.id}-01"</code>
+      </div>
+      <div class="actions"><a class="btn btn-primary" id="to-maintenance" href="index.html">Open in maintenance</a><button class="btn btn-ghost" data-go="fleet">Back to fleet overview</button></div>
+    </div>`:''}`;
+
+  const ord = document.getElementById('do-order');
+  if(ord) ord.onclick = ()=>{ state.step=2; renderOrder(); };
+  document.querySelectorAll('[data-mark]').forEach(el=>{
+    el.onclick = ()=>{ state.dateChoice = +el.dataset.mark; renderOrder(); };
+    el.onkeydown = e => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); state.dateChoice=+el.dataset.mark; renderOrder(); } };
+  });
+  const dd = document.getElementById('do-date');
+  if(dd) dd.onclick = ()=>{ state.step=3; renderOrder(); };
+  document.querySelectorAll('[data-ws]').forEach(el=>{
+    el.onclick = ()=>{ state.workshop = +el.dataset.ws; state.slot = 0; renderOrder(); };
+  });
+  const bk = document.getElementById('do-book');
+  if(bk) bk.onclick = ()=>{ ORDERS[v.id] = { dateLabel: dateIn(marks[state.dateChoice].day) }; state.step=4; renderOrder(); handOver(); };
+
+  /* the booked job is the handover payload for index.html (maintenance agent) */
+  const link = document.getElementById('to-maintenance');
+  if(link) link.href = 'index.html?' + new URLSearchParams(handoverPayload()).toString();
+  bindGo(document.getElementById('screen-order'));
+}
+
+/* ================= navigation ================= */
+function bindGo(root){ root.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go)); }
+
+function go(screen){
+  state.screen = screen;
+  ['fleet','vehicle','select','order'].forEach(s=>{
+    document.getElementById('screen-'+s).hidden = (s!==screen);
+  });
+  const caseTab = document.getElementById('case-tab');
+  caseTab.hidden = !state.vehicle;
+  if(state.vehicle) document.getElementById('case-label').textContent = state.vehicle.plate + ' tyre case';
+  caseTab.classList.toggle('active', screen!=='fleet');
+  document.querySelector('.fleet-nav a[data-go="fleet"]').classList.toggle('active', screen==='fleet');
+  document.getElementById('back-btn').hidden = (screen==='fleet');
+  if(screen==='fleet')   renderFleet();
+  if(screen==='vehicle') renderVehicle();
+  if(screen==='select')  renderSelect();
+  if(screen==='order')   renderOrder();
+  window.scrollTo({top:0,behavior:'instant'});
+}
+
+document.getElementById('back-btn').onclick = ()=>{
+  go(state.screen==='order' ? 'select' : state.screen==='select' ? 'vehicle' : 'fleet');
+};
+document.querySelectorAll('.fleet-nav a[data-go]').forEach(a=>a.onclick=()=>go(a.dataset.go));
+
+document.getElementById('footnote').textContent =
+  'Prototype for Hummingbird phase III. Front end only, no backend, all figures illustrative. ' +
+  'Wheel position, fitted SKU, duty-cycle class and the per-specification performance model are not MCF data fields today and are assumed here. ' +
+  'Tread depth, pressure, odometer, axle load, empty-run share and harsh-event rates exist in MCF.';
+
+renderCounters();
+go('fleet');
+</script>
+
+</body>
+</html>
